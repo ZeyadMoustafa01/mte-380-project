@@ -32,15 +32,15 @@ void setup() {
   //US setup
   pinMode(trigPin, OUTPUT);
   pinMode(echoPin, INPUT);
-
-  //GO FORWARD
+  
+  // GO Forward for 10 seconds
   digitalWrite(in1, HIGH);
   digitalWrite(in2, LOW);
   digitalWrite(in3, HIGH);
   digitalWrite(in4, LOW);
   analogWrite(enA, lSpeed); // Send PWM signal to L298N Enable pin
   analogWrite(enB, rSpeed);
-  //delay(3000);
+  // delay(10000); // 10 seconds = 10 000 ms
 
   SonarSensor(trigPin, echoPin);              // look bellow to find the difinition of the SonarSensor function
   us1Dist = distance;      
@@ -50,58 +50,16 @@ void setup() {
     us1Dist = distance;  
   }
 
-  //STOP
-  analogWrite(enA, 0); // Send PWM signal to L298N Enable pin
-  analogWrite(enB, 0);
-  delay(1000);
-
-
-  //GO BACKWARD
-  digitalWrite(in1, LOW);
-  digitalWrite(in2, HIGH);
-  digitalWrite(in3, LOW);
-  digitalWrite(in4, HIGH);
-  analogWrite(enA, lSpeedBack); // Send PWM signal to L298N Enable pin
-  analogWrite(enB, rSpeedBack);
-  delay(3000);
-
-  //STOP
-  analogWrite(enA, 0); // Send PWM signal to L298N Enable pin
-  analogWrite(enB, 0);
-  delay(1000);
-
-  //TURN
-  digitalWrite(in1, LOW);
-  digitalWrite(in2, HIGH);
-  digitalWrite(in3, HIGH);
-  digitalWrite(in4, LOW);
-  analogWrite(enA, lSpeedTurn); // Send PWM signal to L298N Enable pin
-  analogWrite(enB, rSpeedTurn);
-  delay(3000);
-
-  //STOP
-  analogWrite(enA, 0); // Send PWM signal to L298N Enable pin
-  analogWrite(enB, 0);
-  delay(1000);
-
-  //TURN
-  digitalWrite(in1, HIGH);
-  digitalWrite(in2, LOW);
-  digitalWrite(in3, LOW);
-  digitalWrite(in4, HIGH);
-  analogWrite(enA, lSpeedTurn); // Send PWM signal to L298N Enable pin
-  analogWrite(enB, rSpeedTurn);
-  delay(3000);
-
-  //STOP
+  // Stop
   analogWrite(enA, 0); // Send PWM signal to L298N Enable pin
   analogWrite(enB, 0);
   delay(1000);
 
 }
 
+
 void loop() {
-  // put your main code here, to run repeatedly:
+  // Leave empty 
 }
 
 // SonarSensor function used to generate and read the ultrasonic wave
