@@ -30,13 +30,14 @@ void setup() {
   pinMode(in4, OUTPUT);
   
   //TURN
+  delay(5000);
   digitalWrite(in1, LOW);
   digitalWrite(in2, HIGH);
   digitalWrite(in3, HIGH);
   digitalWrite(in4, LOW);
   analogWrite(enA, lSpeedTurn); // Send PWM signal to L298N Enable pin
   analogWrite(enB, rSpeedTurn);
-  delay(1075);
+  delay(1215);
 
   //STOP
   analogWrite(enA, 0); // Send PWM signal to L298N Enable pin
