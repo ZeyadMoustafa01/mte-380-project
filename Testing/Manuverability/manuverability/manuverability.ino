@@ -3,14 +3,14 @@
 #define in3 4 //Green
 #define in4 7 //Purple
 #define in1 3 //Red
-#define in2 2 //Ornage
+#define in2 2 //Ornage 21.78 30.13
 #define button 4
 #define lSpeed 250
 #define rSpeed 250
 #define lSpeedBack 250
 #define rSpeedBack 250
-#define lSpeedTurn 80
-#define rSpeedTurn 80
+#define lSpeedTurn 150
+#define rSpeedTurn 150
 
 const int trigPin = 12;
 const int echoPin = 13;
@@ -37,7 +37,7 @@ void setup() {
   digitalWrite(in4, LOW);
   analogWrite(enA, lSpeedTurn); // Send PWM signal to L298N Enable pin
   analogWrite(enB, rSpeedTurn);
-  delay(1215);
+  delay(550);
 
   //STOP
   analogWrite(enA, 0); // Send PWM signal to L298N Enable pin

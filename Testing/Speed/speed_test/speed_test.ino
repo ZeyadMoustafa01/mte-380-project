@@ -5,8 +5,8 @@
 #define in1 3 //Red
 #define in2 2 //Ornage
 #define button 4
-#define lSpeed 200
-#define rSpeed 200
+#define lSpeed 250//250
+#define rSpeed 210//240
 #define lSpeedBack 250
 #define rSpeedBack 250
 #define lSpeedTurn 80
@@ -17,6 +17,7 @@ const int echoPin = 13;
 int us1Dist;
 long duration;
 int distance;
+int count = 0;
 
 void setup() {
   // put your setup code here, to run once:
@@ -39,6 +40,10 @@ void setup() {
   digitalWrite(in2, LOW);
   digitalWrite(in3, HIGH);
   digitalWrite(in4, LOW);
+  // analogWrite(enA, 250); // Send PWM signal to L298N Enable pin
+  // analogWrite(enB, 250);
+  // delay(100);
+
   analogWrite(enA, lSpeed); // Send PWM signal to L298N Enable pin
   analogWrite(enB, rSpeed);
   // delay(10000); // 10 seconds = 10 000 ms
@@ -46,9 +51,15 @@ void setup() {
   SonarSensor(trigPin, echoPin);              // look bellow to find the difinition of the SonarSensor function
   us1Dist = distance;      
 
-  while(us1Dist > 30) {
+  while(count < 1) {
     SonarSensor(trigPin, echoPin);              // look bellow to find the difinition of the SonarSensor function
     us1Dist = distance;  
+    if (us1Dist < 30) {
+      count += 1;
+    }
+    else {
+      count = 0;
+    }
   }
 
   // Stop
