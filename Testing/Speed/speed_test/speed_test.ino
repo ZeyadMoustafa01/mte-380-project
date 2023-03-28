@@ -6,7 +6,7 @@
 #define in2 2 //Ornage
 #define button 4
 #define lSpeed 250//250
-#define rSpeed 210//240
+#define rSpeed 215//240
 #define lSpeedBack 250
 #define rSpeedBack 250
 #define lSpeedTurn 80
@@ -46,21 +46,21 @@ void setup() {
 
   analogWrite(enA, lSpeed); // Send PWM signal to L298N Enable pin
   analogWrite(enB, rSpeed);
-  // delay(10000); // 10 seconds = 10 000 ms
+  delay(15000); // 10 seconds = 10 000 ms
 
   SonarSensor(trigPin, echoPin);              // look bellow to find the difinition of the SonarSensor function
   us1Dist = distance;      
 
-  while(count < 1) {
-    SonarSensor(trigPin, echoPin);              // look bellow to find the difinition of the SonarSensor function
-    us1Dist = distance;  
-    if (us1Dist < 30) {
-      count += 1;
-    }
-    else {
-      count = 0;
-    }
-  }
+  // while(count < 1) {
+  //   SonarSensor(trigPin, echoPin);              // look bellow to find the difinition of the SonarSensor function
+  //   us1Dist = distance;  
+  //   if (us1Dist < 30) {
+  //     count += 1;
+  //   }
+  //   else {
+  //     count = 0;
+  //   }
+  // }
 
   // Stop
   analogWrite(enA, 0); // Send PWM signal to L298N Enable pin
