@@ -48,7 +48,6 @@ long duration;
 int distance;
 
 void setup() {
-  delay(5000);
   setup_IMU();
   BT.begin(9600);
   delay(20);
@@ -65,13 +64,24 @@ void setup() {
 
   calculateError();
 
-  demo_run();
+  
+  // demo_run();
   
 
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
+  if (BT.available())
+  {
+    char input = (BT.read());
+    if (input == 's') {
+      demo_run();
+      while (1);
+    }
+    else {
+      delay(1000);
+    }
+  }
 
 }
 
@@ -289,13 +299,11 @@ void drive_straight_distance(float drive_distance) {
   update_us_1();
 
   while (us1Dist > drive_distance) {
-    update_z_angle();
-    print_sample('Z', gyroAngleZ);
-    update_speeds();
+    drive_straight();
     update_us_1();
   }
   stop_robot();
-
+  reinitialize_speed();
 }
 
 void drive_straight_time(float drive_duration) {
@@ -305,12 +313,11 @@ void drive_straight_time(float drive_duration) {
   update_timing();
 
   while (end_time > currentTime) {
-    update_z_angle();
-    print_sample('Z', gyroAngleZ);
-
-    update_speeds();
+    drive_straight();
   }
+
   stop_robot();
+  reinitialize_speed();
 
 }
 
@@ -327,6 +334,7 @@ void turn_90() {
   }
   stop_robot();
   reset_angles();
+  reinitialize_speed();
 }
 
 void reset_angles() {
@@ -341,15 +349,28 @@ void find_ramp() {
 
 void going_up_ramp() {
 
-  currentTime = micros();
-  sampling_start = micros();
+  set_forward();
+  update_timing();
+
+  analogWrite(leftSpeed, left_rotation);
+  analogWrite(rightSpeed, right_rotation);
 
   while (gyroAngleX < 20) {
     drive_straight();
     update_x_angle();
   }
+
+  stop_robot();
+  reinitialize_speed();
+  analogWrite(leftSpeed, 250);
+  analogWrite(rightSpeed, 250);
+
   while (gyroAngleX > 20) {
+    drive_straight_for_ramp();
+    update_x_angle();
   }
+  stop_robot();
+  reset_angles();
 }
 
 void demo_run() {
@@ -359,18 +380,15 @@ void demo_run() {
 }
 
 void drive_straight() {
-  set_forward();
-
-  currentTime = micros();
-  sampling_start = micros();
-
-  analogWrite(leftSpeed, left_rotation);
-  analogWrite(rightSpeed, right_rotation);
-
+  // update_timing();
   update_z_angle();
-  print_sample("Z", gyroAngleZ);
-  update_speeds();
+  update_speeds(230);
+}
 
+void drive_straight_for_ramp() {
+  // update_timing();
+  update_z_angle();
+  update_speeds(250);
 }
 
 void stop_robot() {
@@ -404,6 +422,7 @@ void update_z_angle() {
   if (abs(GyroZ) > 5) {
     gyroAngleZ += GyroZ * elapsedTime;
   }
+  print_sample('Z', gyroAngleZ);
 }
 
 void print_sample(char angle_name, float value) {
@@ -416,7 +435,7 @@ void print_sample(char angle_name, float value) {
   }
 }
 
-void update_speeds() {
+void update_speeds(int speed) {
     if (gyroAngleZ > 1) {
     right_rotation -= 5;//right_rotation = 100; //right_rotation -= 5
     // left_rotation = 230;
@@ -430,8 +449,8 @@ void update_speeds() {
     analogWrite(rightSpeed, right_rotation);     
   }
   else {
-    right_rotation = 230;
-    left_rotation = 230;
+    right_rotation = speed;
+    left_rotation = speed;
     analogWrite(rightSpeed, right_rotation);
     analogWrite(leftSpeed, left_rotation);  
   }
@@ -449,6 +468,7 @@ void update_x_angle() {
   if (abs(GyroX) > 5) {
     gyroAngleX += GyroX * elapsedTime;
   }
+  print_sample('X', gyroAngleX);
 }
 
 void update_timing() {
@@ -459,4 +479,14 @@ void update_timing() {
 void update_us_1() {
   SonarSensor(trigPin, echoPin);
   us1Dist = distance;  
+}
+
+void reinitialize_speed() {
+  left_rotation = 230;
+  right_rotation = 230;
+}
+
+void run_course() {
+  find_ramp();
+  going_up_ramp();
 }
