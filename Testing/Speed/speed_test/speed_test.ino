@@ -46,7 +46,7 @@ void setup() {
 
   analogWrite(enA, lSpeed); // Send PWM signal to L298N Enable pin
   analogWrite(enB, rSpeed);
-  delay(15000); // 10 seconds = 10 000 ms
+  delay(1000); // 10 seconds = 10 000 ms
 
   SonarSensor(trigPin, echoPin);              // look bellow to find the difinition of the SonarSensor function
   us1Dist = distance;      
