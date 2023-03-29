@@ -37,7 +37,8 @@ float accAngleX, accAngleY, gyroAngleX, gyroAngleY, gyroAngleZ; //used in void l
 float roll, pitch, yaw;
 float AccErrorX, AccErrorY, GyroErrorX, GyroErrorY, GyroErrorZ;
 float elapsedTime, currentTime, previousTime;
-float start_time, drive_duration, end_time
+float start_time, drive_duration, end_time;
+float sampling_start, sampling_duration;
 int c = 0;
 
 const int trigPin = 12;
@@ -63,10 +64,10 @@ void setup() {
   pinMode(echoPin, INPUT);
 
   calculateError();
-  
-  drive_straight();
 
-  turn_90();
+  demo_run();
+  
+
 }
 
 void loop() {
@@ -77,7 +78,6 @@ void loop() {
 void setup_IMU() {
 
   SERIAL_PORT.begin(115200);
-  SERIAL_PORT.println("Hi");
   while (!SERIAL_PORT)
   {
   };
@@ -280,83 +280,183 @@ void calculateError() {
   Serial.println("The the gryoscope setting in MPU6050 has been calibrated");
 }
 
-void drive_straight() {
-  digitalWrite(right1, HIGH);
-  digitalWrite(right2, LOW);
-  digitalWrite(left1, HIGH);
-  digitalWrite(left2, LOW);
-  currentTime = micros();
+void drive_straight_distance(float drive_distance) {
+  set_forward();
+  update_timing();
 
   analogWrite(leftSpeed, left_rotation);
   analogWrite(rightSpeed, right_rotation);
+  update_us_1();
 
-  SonarSensor(trigPin, echoPin);
-  us1Dist = distance;  
-
-  while (us1Dist > 15) {
-    readGyro();
-    previousTime = currentTime;
-    currentTime = micros();
-    elapsedTime = (currentTime - previousTime) / 1000000;
-    GyroZ -= GyroErrorZ;
-
-    if (abs(GyroZ) > 5) {
-      gyroAngleZ += GyroZ * elapsedTime;
-    }
-    BT.print("Z-angle: ");
-    BT.println(gyroAngleZ);
-
-    if (gyroAngleZ > 1) {
-      right_rotation -= 5;//right_rotation = 100;//
-      left_rotation = 230;
-      analogWrite(leftSpeed, left_rotation);
-      analogWrite(rightSpeed, right_rotation);
-    }
-    else if (gyroAngleZ < -1){
-      left_rotation -= 5;// left_rotation = 100;
-      right_rotation = 230;
-      analogWrite(leftSpeed, left_rotation);
-      analogWrite(rightSpeed, right_rotation);     
-    }
-    else {
-      right_rotation = 230;
-      left_rotation = 230;
-      analogWrite(rightSpeed, right_rotation);
-      analogWrite(leftSpeed, left_rotation);  
-    }
-
-    SonarSensor(trigPin, echoPin);
-    us1Dist = distance;  
+  while (us1Dist > drive_distance) {
+    update_z_angle();
+    print_sample('Z', gyroAngleZ);
+    update_speeds();
+    update_us_1();
   }
+  stop_robot();
 
-  analogWrite(leftSpeed, 0);
-  analogWrite(rightSpeed, 0);
+}
+
+void drive_straight_time(float drive_duration) {
+  set_forward();
+  float end_time;
+  end_time = currentTime + drive_duration*1000;
+  update_timing();
+
+  while (end_time > currentTime) {
+    update_z_angle();
+    print_sample('Z', gyroAngleZ);
+
+    update_speeds();
+  }
+  stop_robot();
 
 }
 
 void turn_90() {
+  turnleft();
+  update_timing();
+
+  while (gyroAngleZ < 90) {
+    update_z_angle();
+    print_sample('Z', gyroAngleZ);
+
+    analogWrite(leftSpeed, 80);
+    analogWrite(rightSpeed, 80);
+  }
+  stop_robot();
+  reset_angles();
+}
+
+void reset_angles() {
+  gyroAngleZ = 0;
+  gyroAngleX = 0;
+  gyroAngleY = 0;
+}
+
+void find_ramp() {
+  drive_straight_distance(5);
+}
+
+void going_up_ramp() {
+
+  currentTime = micros();
+  sampling_start = micros();
+
+  while (gyroAngleX < 20) {
+    drive_straight();
+    update_x_angle();
+  }
+  while (gyroAngleX > 20) {
+  }
+}
+
+void demo_run() {
+  drive_straight_distance(15);
+  turn_90();
+  drive_straight_time(2000);
+}
+
+void drive_straight() {
+  set_forward();
+
+  currentTime = micros();
+  sampling_start = micros();
+
+  analogWrite(leftSpeed, left_rotation);
+  analogWrite(rightSpeed, right_rotation);
+
+  update_z_angle();
+  print_sample("Z", gyroAngleZ);
+  update_speeds();
+
+}
+
+void stop_robot() {
+  analogWrite(leftSpeed, 0);
+  analogWrite(rightSpeed, 0);
+}
+
+void set_forward() {
+  digitalWrite(right1, HIGH);
+  digitalWrite(right2, LOW);
+  digitalWrite(left1, HIGH);
+  digitalWrite(left2, LOW);
+}
+
+void turnleft() {
   digitalWrite(right1, LOW);
   digitalWrite(right2, HIGH);
   digitalWrite(left1, HIGH);
   digitalWrite(left2, LOW);
+}
 
-  while (gyroAngleZ < 90) {
-    readGyro();
-    previousTime = currentTime;
-    currentTime = micros();
-    elapsedTime = (currentTime - previousTime) / 1000000;
-    GyroZ -= GyroErrorZ;
+void update_z_angle() {
+  readGyro();
+  
+  previousTime = currentTime;
+  currentTime = micros();
+  elapsedTime = (currentTime - previousTime) / 1000000;
+  
+  GyroZ -= GyroErrorZ;
 
-    if (abs(GyroZ) > 5) {
-      gyroAngleZ += GyroZ * elapsedTime;
-    }
-    BT.print("Z-angle: ");
-    BT.println(gyroAngleZ);
-
-    analogWrite(leftSpeed, 150);
-    analogWrite(rightSpeed, 150);
+  if (abs(GyroZ) > 5) {
+    gyroAngleZ += GyroZ * elapsedTime;
   }
+}
 
-  analogWrite(leftSpeed, 0);
-  analogWrite(rightSpeed, 0);
+void print_sample(char angle_name, float value) {
+  sampling_duration = (currentTime - sampling_start) / 1000;
+  if (sampling_duration > 500) {
+    BT.print(angle_name);
+    BT.print("-angle: ");
+    BT.println(value);
+    sampling_start = currentTime;
+  }
+}
+
+void update_speeds() {
+    if (gyroAngleZ > 1) {
+    right_rotation -= 5;//right_rotation = 100; //right_rotation -= 5
+    // left_rotation = 230;
+    analogWrite(leftSpeed, left_rotation);
+    analogWrite(rightSpeed, right_rotation);
+  }
+  else if (gyroAngleZ < -1) {
+    left_rotation -= 5;// left_rotation = 100; //right_rotation -= 5
+    // right_rotation = 230;
+    analogWrite(leftSpeed, left_rotation);
+    analogWrite(rightSpeed, right_rotation);     
+  }
+  else {
+    right_rotation = 230;
+    left_rotation = 230;
+    analogWrite(rightSpeed, right_rotation);
+    analogWrite(leftSpeed, left_rotation);  
+  }
+}
+
+void update_x_angle() {
+  readGyro();
+  
+  previousTime = currentTime;
+  currentTime = micros();
+  elapsedTime = (currentTime - previousTime) / 1000000;
+  
+  GyroX -= GyroErrorX;
+
+  if (abs(GyroX) > 5) {
+    gyroAngleX += GyroX * elapsedTime;
+  }
+}
+
+void update_timing() {
+  currentTime = micros();
+  sampling_start = micros();
+}
+
+void update_us_1() {
+  SonarSensor(trigPin, echoPin);
+  us1Dist = distance;  
 }
