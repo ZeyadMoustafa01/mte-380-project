@@ -44,8 +44,42 @@ int c = 0;
 const int trigPin = 12;
 const int echoPin = 13;
 int us1Dist;
+const int trigPin_2 = 9;
+const int echoPin_2 = 8;
+int us2Dist;
+
 long duration;
 int distance;
+
+// Function declarations
+void setup_IMU();
+void readAcceleration();
+void SonarSensor();
+void readGyro();
+void calculateError();
+void drive_straight_distance(float drive_distance);
+void drive_straight_time(float drive_duration);
+void turn_left_90();
+void turn_right_90();
+void reset_angles();
+void find_ramp();
+void going_up_ramp();
+void demo_run(); // For testing purposes.
+void drive_straight();
+void drive_straight_for_ramp();
+void stop_robot();
+void set_forward();
+void turnleft();
+void turnright();
+void update_z_angle();
+void update_speeds(int speed);
+void update_x_angle();
+void update_timing();
+void update_us_1();
+void update_us_2();
+void reinitialize_speed();
+void find_platform();
+void run_course();
 
 void setup() {
   setup_IMU();
@@ -62,11 +96,13 @@ void setup() {
   pinMode(trigPin, OUTPUT);
   pinMode(echoPin, INPUT);
 
+  pinMode(trigPin_2, OUTPUT);
+  pinMode(echoPin_2, INPUT);
+
   calculateError();
 
   
   // demo_run();
-  
 
 }
 
@@ -75,7 +111,9 @@ void loop() {
   {
     char input = (BT.read());
     if (input == 's') {
-      demo_run();
+      // demo_run();
+      run_course();
+      // drive_straight_time(5000);
       while (1);
     }
     else {
@@ -308,12 +346,15 @@ void drive_straight_distance(float drive_distance) {
 
 void drive_straight_time(float drive_duration) {
   set_forward();
+  update_timing();
+  analogWrite(leftSpeed, left_rotation);
+  analogWrite(rightSpeed, right_rotation);
+  
   float end_time;
   end_time = currentTime + drive_duration*1000;
-  update_timing();
 
   while (end_time > currentTime) {
-    drive_straight();
+    drive_straight_for_ramp();
   }
 
   stop_robot();
@@ -321,7 +362,7 @@ void drive_straight_time(float drive_duration) {
 
 }
 
-void turn_90() {
+void turn_left_90() {
   turnleft();
   update_timing();
 
@@ -335,6 +376,24 @@ void turn_90() {
   stop_robot();
   reset_angles();
   reinitialize_speed();
+}
+
+void turn_right_90() {
+  turnright();
+  update_timing();
+
+  while (gyroAngleZ > -90) {
+    update_z_angle();
+    print_sample('Z', gyroAngleZ);
+
+    analogWrite(leftSpeed, 80);
+    analogWrite(rightSpeed, 80);
+  }
+
+  stop_robot();
+  reset_angles();
+  reinitialize_speed();
+
 }
 
 void reset_angles() {
@@ -355,27 +414,76 @@ void going_up_ramp() {
   analogWrite(leftSpeed, left_rotation);
   analogWrite(rightSpeed, right_rotation);
 
-  while (gyroAngleX < 20) {
+  while (gyroAngleX > -10) {
     drive_straight();
     update_x_angle();
   }
 
   stop_robot();
-  reinitialize_speed();
-  analogWrite(leftSpeed, 250);
-  analogWrite(rightSpeed, 250);
+ 
 
-  while (gyroAngleX > 20) {
-    drive_straight_for_ramp();
+  while (gyroAngleX < -10) {
+    // drive_straight_for_ramp();
+    analogWrite(leftSpeed, 255);
+    analogWrite(rightSpeed, 255);
     update_x_angle();
   }
+
+  delay(1000);
+  analogWrite(leftSpeed, 80);
+  analogWrite(rightSpeed, 80);
+  reset_angles();  
+  delay(1000);
+  set_back();
+  
+  while (gyroAngleX > 7) {
+    analogWrite(leftSpeed, 80);
+    analogWrite(rightSpeed, 80);
+    update_x_angle();
+  }
+
+  set_forward();
+  analogWrite(leftSpeed, 80);
+  analogWrite(rightSpeed, 80);
+  delay(1000);
   stop_robot();
-  reset_angles();
+  reinitialize_speed();
+
+
+  turn_left_90();
+  drive_straight_time(2000);
+  turn_left_90();
+  delay(1000);
+  update_us_2();
+  int platform_max_dist = 75;
+
+  set_forward();
+  update_timing();
+  analogWrite(leftSpeed, left_rotation);
+  analogWrite(rightSpeed, right_rotation);
+
+  int count = 0;
+
+  while(count < 50){
+    if (us2Dist < platform_max_dist) {
+      count += 1;
+    }
+    drive_straight();
+    update_us_2();
+    BT.print("Ultrasonic: ");
+    BT.println(us2Dist);
+  }
+  stop_robot();
+  turn_right_90();
+  drive_straight_distance(5);
+  stop_robot();
+
+
 }
 
 void demo_run() {
   drive_straight_distance(15);
-  turn_90();
+  turn_right_90();
   drive_straight_time(2000);
 }
 
@@ -389,6 +497,13 @@ void drive_straight_for_ramp() {
   // update_timing();
   update_z_angle();
   update_speeds(250);
+}
+
+void set_back() {
+  digitalWrite(right1, LOW);
+  digitalWrite(right2, HIGH);
+  digitalWrite(left1, LOW);
+  digitalWrite(left2, HIGH);
 }
 
 void stop_robot() {
@@ -410,6 +525,13 @@ void turnleft() {
   digitalWrite(left2, LOW);
 }
 
+void turnright() {
+  digitalWrite(right1, HIGH);
+  digitalWrite(right2, LOW);
+  digitalWrite(left1, LOW);
+  digitalWrite(left2, HIGH);  
+}
+
 void update_z_angle() {
   readGyro();
   
@@ -422,11 +544,12 @@ void update_z_angle() {
   if (abs(GyroZ) > 5) {
     gyroAngleZ += GyroZ * elapsedTime;
   }
-  print_sample('Z', gyroAngleZ);
+  // print_sample('Z', gyroAngleZ);
 }
 
 void print_sample(char angle_name, float value) {
   sampling_duration = (currentTime - sampling_start) / 1000;
+
   if (sampling_duration > 500) {
     BT.print(angle_name);
     BT.print("-angle: ");
@@ -458,7 +581,7 @@ void update_speeds(int speed) {
 
 void update_x_angle() {
   readGyro();
-  
+
   previousTime = currentTime;
   currentTime = micros();
   elapsedTime = (currentTime - previousTime) / 1000000;
@@ -468,6 +591,7 @@ void update_x_angle() {
   if (abs(GyroX) > 5) {
     gyroAngleX += GyroX * elapsedTime;
   }
+
   print_sample('X', gyroAngleX);
 }
 
@@ -481,12 +605,51 @@ void update_us_1() {
   us1Dist = distance;  
 }
 
+void update_us_2() {
+  SonarSensor(trigPin_2, echoPin_2);
+  us2Dist = distance;  
+}
+
 void reinitialize_speed() {
   left_rotation = 230;
   right_rotation = 230;
 }
 
+void find_platform() {
+  
+  turn_left_90();
+  update_us_1();
+
+  // Change 1000 to width of the course
+  if (us1Dist < 1000){ // Check if platform in front
+    drive_straight_distance(5);    
+  }
+  else
+  {
+    drive_straight_time(5000);
+    turn_left_90();
+    
+    // Change 1000 to width of the course
+    while (us2Dist < 1000) {
+      drive_straight();
+      update_us_2();    
+    }
+    // Align the measured deviation with the axis of rotation, guessed value
+    delay(500); 
+    turn_right_90();
+
+    // Option 1: Drive till 5 cm away (or however much req'd for platform) - implemented
+    // Option 2: Drive given distance in case always off
+    drive_straight_distance(5);
+
+  }
+
+}
+
+
 void run_course() {
   find_ramp();
+  turn_left_90();
+  // drive_straight_time(5000);
   going_up_ramp();
 }
